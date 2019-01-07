@@ -1,0 +1,20 @@
+## Visual Studio / .NET
+.vs/
+.vscode/
+bin/
+obj/
+*.user
+*.suo
+*.userprefs
+*.DotSettings.user
+TestResults/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+*.log
+*.nupkg
+packages/
+.idea/
+*.swp
+.DS_Store
