@@ -23,6 +23,11 @@ namespace FleetTrack.Core.Services
             _events = Guard.NotNull(events, nameof(events));
         }
 
+        public Trip Get(Guid id)
+        {
+            return _trips.Get(id);
+        }
+
         public Result<Trip> Plan(Guid vehicleId, Guid driverId, GeoPoint origin, GeoPoint destination, DateTime plannedStartUtc)
         {
             var vehicle = _vehicles.Get(vehicleId);
@@ -77,6 +82,65 @@ namespace FleetTrack.Core.Services
             _vehicles.Update(vehicle);
             _trips.Update(trip);
             return Result.Ok(trip);
+        }
+
+        public Result<Trip> Complete(Guid tripId, double endOdometerKm)
+        {
+            var trip = _trips.Get(tripId);
+            if (trip == null)
+            {
+                return Result.Fail<Trip>("Trip not found.");
+            }
+
+            var vehicle = _vehicles.Get(trip.VehicleId);
+            var now = _clock.UtcNow;
+
+            try
+            {
+                trip.Complete(now, endOdometerKm);
+                vehicle.UpdateOdometer(endOdometerKm);
+                vehicle.ReleaseFromTrip();
+            }
+            catch (DomainException ex)
+            {
+                return Result.Fail<Trip>(ex.Message);
+            }
+
+            _vehicles.Update(vehicle);
+            _trips.Update(trip);
+
+            _events.Publish(new TripCompletedEvent(trip.Id, trip.VehicleId, trip.DriverId, trip.DistanceKm ?? 0, now));
+            return Result.Ok(trip);
+        }
+
+        public Result Cancel(Guid tripId)
+        {
+            var trip = _trips.Get(tripId);
+            if (trip == null)
+            {
+                return Result.Fail("Trip not found.");
+            }
+
+            var wasInProgress = trip.Status == TripStatus.InProgress;
+
+            try
+            {
+                trip.Cancel();
+            }
+            catch (DomainException ex)
+            {
+                return Result.Fail(ex.Message);
+            }
+
+            if (wasInProgress)
+            {
+                var vehicle = _vehicles.Get(trip.VehicleId);
+                vehicle.ReleaseFromTrip();
+                _vehicles.Update(vehicle);
+            }
+
+            _trips.Update(trip);
+            return Result.Ok();
         }
     }
 }
