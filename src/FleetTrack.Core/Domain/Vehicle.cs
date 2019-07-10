@@ -30,6 +30,15 @@ namespace FleetTrack.Core.Domain
 
         public VehicleStatus Status { get; private set; }
 
+        public DateTime? LastServiceUtc { get; private set; }
+
+        public double LastServiceOdometerKm { get; private set; }
+
+        public int Age(int currentYear)
+        {
+            return Math.Max(0, currentYear - Year);
+        }
+
         public void UpdateOdometer(double km)
         {
             if (km < OdometerKm)
@@ -56,6 +65,38 @@ namespace FleetTrack.Core.Domain
             {
                 Status = VehicleStatus.Available;
             }
+        }
+
+        public void SendToMaintenance()
+        {
+            if (Status == VehicleStatus.InUse || Status == VehicleStatus.Retired)
+            {
+                throw new DomainException($"Vehicle {LicensePlate} cannot enter maintenance while {Status}.");
+            }
+
+            Status = VehicleStatus.InMaintenance;
+        }
+
+        public void CompleteMaintenance(DateTime performedUtc)
+        {
+            if (Status == VehicleStatus.Retired)
+            {
+                throw new DomainException("Retired vehicles cannot be serviced.");
+            }
+
+            LastServiceUtc = performedUtc;
+            LastServiceOdometerKm = OdometerKm;
+            Status = VehicleStatus.Available;
+        }
+
+        public void Retire()
+        {
+            if (Status == VehicleStatus.InUse)
+            {
+                throw new DomainException("A vehicle in use cannot be retired.");
+            }
+
+            Status = VehicleStatus.Retired;
         }
     }
 }
