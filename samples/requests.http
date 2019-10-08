@@ -1,0 +1,23 @@
+@host = http://localhost:5000
+
+### Health
+GET {{host}}/api/health
+
+### List vehicles
+GET {{host}}/api/vehicles?q=volvo&page=1&pageSize=10
+
+### Register a vehicle
+POST {{host}}/api/vehicles
+Content-Type: application/json
+
+{
+  "licensePlate": "FT-2001",
+  "make": "Scania",
+  "model": "R450",
+  "year": 2019,
+  "fuelType": 1,
+  "odometerKm": 0
+}
+
+### Alerts
+GET {{host}}/api/reports/alerts
