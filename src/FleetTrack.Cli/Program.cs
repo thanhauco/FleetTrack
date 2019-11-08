@@ -1,4 +1,5 @@
 using System;
+using FleetTrack.Cli.Commands;
 
 namespace FleetTrack.Cli
 {
@@ -6,8 +7,18 @@ namespace FleetTrack.Cli
     {
         public static int Main(string[] args)
         {
-            Console.WriteLine("FleetTrack CLI");
-            return 0;
+            var context = new FleetContext();
+
+            var router = new CommandRouter(new ICommand[]
+            {
+                new ListVehiclesCommand(context),
+                new AlertsCommand(context),
+                new ReportCommand(context),
+                new SimulateCommand(context),
+                new UtilizationCommand(context)
+            });
+
+            return router.Run(args, Console.Out);
         }
     }
 }
