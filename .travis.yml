@@ -1,5 +1,13 @@
 language: csharp
+os: linux
+dist: xenial
 mono: none
-dotnet: 2.2
+dotnet: 2.2.402
+env:
+  global:
+    - DOTNET_SKIP_FIRST_TIME_EXPERIENCE=true
+    - DOTNET_CLI_TELEMETRY_OPTOUT=1
 script:
-  - dotnet build
+  - dotnet restore FleetTrack.sln
+  - dotnet build FleetTrack.sln -c Release --no-restore
+  - dotnet test tests/FleetTrack.Tests -c Release --no-build
