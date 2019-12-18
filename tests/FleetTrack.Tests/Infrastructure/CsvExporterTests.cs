@@ -20,6 +20,19 @@ namespace FleetTrack.Tests.Infrastructure
             Assert.Equal(expected, CsvExporter.Escape(input));
         }
 
+        [Theory]
+        [InlineData("=1+1", "'=1+1")]
+        [InlineData("+49 30 1234", "'+49 30 1234")]
+        [InlineData("-2", "'-2")]
+        [InlineData("@SUM(A1:A2)", "'@SUM(A1:A2)")]
+        [InlineData("=cmd|'/C calc'!A0", "'=cmd|'/C calc'!A0")]
+        [InlineData("=HYPERLINK(\"http://x\",\"y\")", "\"'=HYPERLINK(\"\"http://x\"\",\"\"y\"\")\"")]
+        [InlineData("a=b", "a=b")]
+        public void Escape_NeutralisesFormulas(string input, string expected)
+        {
+            Assert.Equal(expected, CsvExporter.Escape(input));
+        }
+
         [Fact]
         public void ExportVehicles_WritesHeaderAndRows()
         {

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
@@ -7,6 +8,8 @@ namespace FleetTrack.Infrastructure.Export
 {
     public static class CsvExporter
     {
+        private static readonly char[] FormulaTriggers = { '=', '+', '-', '@', '\t', '\r' };
+
         public static string ExportVehicles(IEnumerable<Vehicle> vehicles)
         {
             var sb = new StringBuilder();
@@ -52,6 +55,14 @@ namespace FleetTrack.Infrastructure.Export
             if (string.IsNullOrEmpty(value))
             {
                 return string.Empty;
+            }
+
+            // Spreadsheets evaluate a cell starting with one of these characters as a
+            // formula even when the field is quoted (CSV injection). A leading
+            // apostrophe makes Excel and LibreOffice treat the cell as text.
+            if (Array.IndexOf(FormulaTriggers, value[0]) >= 0)
+            {
+                value = "'" + value;
             }
 
             if (value.IndexOfAny(new[] { ',', '"', '\n', '\r' }) < 0)
