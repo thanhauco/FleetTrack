@@ -54,7 +54,15 @@ namespace FleetTrack.Api.Controllers
                 new Money(request.Cost, request.Currency),
                 request.Notes);
 
-            vehicle.CompleteMaintenance(now);
+            try
+            {
+                vehicle.CompleteMaintenance(now);
+            }
+            catch (DomainException ex)
+            {
+                return Conflict(new { error = ex.Message });
+            }
+
             _vehicles.Update(vehicle);
             _maintenance.Add(record);
 

@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using FleetTrack.Core.Common;
 using FleetTrack.Core.Domain;
 using FleetTrack.Tests.Helpers;
@@ -85,6 +87,38 @@ namespace FleetTrack.Tests.Domain
             Assert.Equal(VehicleStatus.Retired, vehicle.Status);
             Assert.Throws<DomainException>(() => vehicle.AssignToTrip());
             Assert.Throws<DomainException>(() => vehicle.CompleteMaintenance(TestData.Now));
+        }
+
+        [Fact]
+        public void CompleteMaintenance_Throws_WhileInUse()
+        {
+            var vehicle = TestData.Vehicle();
+            vehicle.AssignToTrip();
+
+            Assert.Throws<DomainException>(() => vehicle.CompleteMaintenance(TestData.Now));
+            Assert.Equal(VehicleStatus.InUse, vehicle.Status);
+            Assert.Null(vehicle.LastServiceUtc);
+        }
+
+        [Fact]
+        public void AssignToTrip_IsAtomicUnderContention()
+        {
+            var vehicle = TestData.Vehicle();
+            var successes = 0;
+
+            Parallel.For(0, 64, _ =>
+            {
+                try
+                {
+                    vehicle.AssignToTrip();
+                    Interlocked.Increment(ref successes);
+                }
+                catch (DomainException)
+                {
+                }
+            });
+
+            Assert.Equal(1, successes);
         }
 
         [Fact]

@@ -5,6 +5,11 @@ namespace FleetTrack.Core.Domain
 {
     public class Vehicle : Entity
     {
+        // Repositories hand out shared instances, so every status transition is a
+        // check-then-set that must be atomic: two callers must never both see
+        // "Available" and both assign the vehicle.
+        private readonly object _sync = new object();
+
         public Vehicle(string licensePlate, string make, string model, int year, FuelType fuelType, double odometerKm)
         {
             LicensePlate = Guard.NotEmpty(licensePlate, nameof(licensePlate)).Trim().ToUpperInvariant();
@@ -41,62 +46,87 @@ namespace FleetTrack.Core.Domain
 
         public void UpdateOdometer(double km)
         {
-            if (km < OdometerKm)
+            lock (_sync)
             {
-                throw new DomainException("Odometer cannot move backwards.");
-            }
+                if (km < OdometerKm)
+                {
+                    throw new DomainException("Odometer cannot move backwards.");
+                }
 
-            OdometerKm = km;
+                OdometerKm = km;
+            }
         }
 
         public void AssignToTrip()
         {
-            if (Status != VehicleStatus.Available)
+            lock (_sync)
             {
-                throw new DomainException($"Vehicle {LicensePlate} is not available.");
-            }
+                if (Status != VehicleStatus.Available)
+                {
+                    throw new DomainException($"Vehicle {LicensePlate} is not available.");
+                }
 
-            Status = VehicleStatus.InUse;
+                Status = VehicleStatus.InUse;
+            }
         }
 
         public void ReleaseFromTrip()
         {
-            if (Status == VehicleStatus.InUse)
+            lock (_sync)
             {
-                Status = VehicleStatus.Available;
+                if (Status == VehicleStatus.InUse)
+                {
+                    Status = VehicleStatus.Available;
+                }
             }
         }
 
         public void SendToMaintenance()
         {
-            if (Status == VehicleStatus.InUse || Status == VehicleStatus.Retired)
+            lock (_sync)
             {
-                throw new DomainException($"Vehicle {LicensePlate} cannot enter maintenance while {Status}.");
-            }
+                if (Status == VehicleStatus.InUse || Status == VehicleStatus.Retired)
+                {
+                    throw new DomainException($"Vehicle {LicensePlate} cannot enter maintenance while {Status}.");
+                }
 
-            Status = VehicleStatus.InMaintenance;
+                Status = VehicleStatus.InMaintenance;
+            }
         }
 
         public void CompleteMaintenance(DateTime performedUtc)
         {
-            if (Status == VehicleStatus.Retired)
+            lock (_sync)
             {
-                throw new DomainException("Retired vehicles cannot be serviced.");
-            }
+                if (Status == VehicleStatus.Retired)
+                {
+                    throw new DomainException("Retired vehicles cannot be serviced.");
+                }
 
-            LastServiceUtc = performedUtc;
-            LastServiceOdometerKm = OdometerKm;
-            Status = VehicleStatus.Available;
+                // Completing a service sets the vehicle Available; doing that while it
+                // is out on a trip would free it for a second, overlapping trip.
+                if (Status == VehicleStatus.InUse)
+                {
+                    throw new DomainException($"Vehicle {LicensePlate} is on a trip and cannot be serviced until it returns.");
+                }
+
+                LastServiceUtc = performedUtc;
+                LastServiceOdometerKm = OdometerKm;
+                Status = VehicleStatus.Available;
+            }
         }
 
         public void Retire()
         {
-            if (Status == VehicleStatus.InUse)
+            lock (_sync)
             {
-                throw new DomainException("A vehicle in use cannot be retired.");
-            }
+                if (Status == VehicleStatus.InUse)
+                {
+                    throw new DomainException("A vehicle in use cannot be retired.");
+                }
 
-            Status = VehicleStatus.Retired;
+                Status = VehicleStatus.Retired;
+            }
         }
     }
 }
