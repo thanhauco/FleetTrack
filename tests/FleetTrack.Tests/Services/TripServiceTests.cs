@@ -59,6 +59,48 @@ namespace FleetTrack.Tests.Services
         }
 
         [Fact]
+        public void Plan_FailsWhenLicenceExpiresBeforePlannedStart()
+        {
+            var expiringSoon = TestData.Driver("D-SOON", 10);
+            _drivers.Add(expiringSoon);
+
+            var result = _service.Plan(_vehicle.Id, expiringSoon.Id, TestData.Berlin, TestData.Munich, TestData.Now.AddDays(30));
+
+            Assert.True(result.IsFailure);
+            Assert.Contains("before the planned start", result.Error);
+        }
+
+        [Fact]
+        public void Plan_SucceedsWhenLicenceStillValidOnPlannedStart()
+        {
+            var expiringSoon = TestData.Driver("D-SOON", 10);
+            _drivers.Add(expiringSoon);
+
+            Assert.True(_service.Plan(_vehicle.Id, expiringSoon.Id, TestData.Berlin, TestData.Munich, TestData.Now.AddDays(10)).IsSuccess);
+        }
+
+        [Fact]
+        public void Start_FailsWhenLicenceExpiredSincePlanning()
+        {
+            var expiringSoon = TestData.Driver("D-SOON", 1);
+            _drivers.Add(expiringSoon);
+            var trip = _service.Plan(_vehicle.Id, expiringSoon.Id, TestData.Berlin, TestData.Munich, TestData.Now).Value;
+            _clock.Advance(TimeSpan.FromDays(5));
+
+            Assert.True(_service.Start(trip.Id).IsFailure);
+            Assert.Equal(VehicleStatus.Available, _vehicles.Get(_vehicle.Id).Status);
+        }
+
+        [Fact]
+        public void Start_FailsWhenDriverDeactivatedSincePlanning()
+        {
+            var trip = PlanTrip();
+            _driver.Deactivate();
+
+            Assert.True(_service.Start(trip.Id).IsFailure);
+        }
+
+        [Fact]
         public void Plan_FailsForRetiredVehicle()
         {
             _vehicle.Retire();

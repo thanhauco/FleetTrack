@@ -47,6 +47,12 @@ namespace FleetTrack.Core.Services
                 return Result.Fail<Trip>("Driver is inactive or has an expired licence.");
             }
 
+            // Valid today is not enough for a trip booked weeks ahead.
+            if (!driver.IsLicenseValid(plannedStartUtc))
+            {
+                return Result.Fail<Trip>($"Licence of {driver.FullName} expires on {driver.LicenseExpiryUtc:yyyy-MM-dd}, before the planned start.");
+            }
+
             if (vehicle.Status == VehicleStatus.Retired || vehicle.Status == VehicleStatus.InMaintenance)
             {
                 return Result.Fail<Trip>($"Vehicle {vehicle.LicensePlate} cannot be used ({vehicle.Status}).");
@@ -68,6 +74,13 @@ namespace FleetTrack.Core.Services
             if (trip.Status != TripStatus.Planned)
             {
                 return Result.Fail<Trip>($"Trip is {trip.Status}, only planned trips can be started.");
+            }
+
+            // The licence may have expired, or the driver been deactivated, since planning.
+            var driver = _drivers.Get(trip.DriverId);
+            if (driver == null || !driver.IsLicenseValid(_clock.UtcNow))
+            {
+                return Result.Fail<Trip>("Driver is inactive or has an expired licence.");
             }
 
             var vehicle = _vehicles.Get(trip.VehicleId);
