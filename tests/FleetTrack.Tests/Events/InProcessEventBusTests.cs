@@ -45,6 +45,37 @@ namespace FleetTrack.Tests.Events
         }
 
         [Fact]
+        public void FailingHandler_DoesNotStopOtherHandlers_AndIsReported()
+        {
+            IDomainEvent failedEvent = null;
+            Exception failure = null;
+            var bus = new InProcessEventBus((e, ex) =>
+            {
+                failedEvent = e;
+                failure = ex;
+            });
+            var laterHandlerRan = false;
+            bus.Subscribe<TripCompletedEvent>(e => { throw new InvalidOperationException("smtp down"); });
+            bus.Subscribe<TripCompletedEvent>(e => laterHandlerRan = true);
+            var published = NewEvent();
+
+            bus.Publish(published);
+
+            Assert.True(laterHandlerRan);
+            Assert.Same(published, failedEvent);
+            Assert.Equal("smtp down", failure.Message);
+        }
+
+        [Fact]
+        public void FailingHandler_WithDefaultReporter_DoesNotThrow()
+        {
+            var bus = new InProcessEventBus();
+            bus.Subscribe<TripCompletedEvent>(e => { throw new InvalidOperationException(); });
+
+            Assert.Null(Record.Exception(() => bus.Publish(NewEvent())));
+        }
+
+        [Fact]
         public void Subscribe_NullHandler_Throws()
         {
             Assert.Throws<ArgumentNullException>(() => new InProcessEventBus().Subscribe<TripCompletedEvent>(null));

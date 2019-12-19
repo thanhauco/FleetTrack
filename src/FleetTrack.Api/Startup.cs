@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Swashbuckle.AspNetCore.Swagger;
 
 namespace FleetTrack.Api
@@ -29,7 +30,11 @@ namespace FleetTrack.Api
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddSingleton<IClock, SystemClock>();
-            services.AddSingleton<IEventBus, InProcessEventBus>();
+            services.AddSingleton<IEventBus>(sp =>
+            {
+                var logger = sp.GetRequiredService<ILogger<InProcessEventBus>>();
+                return new InProcessEventBus((e, ex) => logger.LogError(ex, "Handler for {Event} failed", e.GetType().Name));
+            });
             services.AddSingleton<INotifier, ConsoleNotifier>(sp => new ConsoleNotifier());
 
             services.AddSingleton<IVehicleRepository, InMemoryVehicleRepository>();

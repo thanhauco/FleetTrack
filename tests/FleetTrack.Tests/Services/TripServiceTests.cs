@@ -111,6 +111,20 @@ namespace FleetTrack.Tests.Services
         }
 
         [Fact]
+        public void Complete_Succeeds_EvenWhenASubscriberThrows()
+        {
+            _bus.Subscribe<TripCompletedEvent>(e => { throw new InvalidOperationException("notifier down"); });
+            var trip = PlanTrip();
+            _service.Start(trip.Id);
+
+            var result = _service.Complete(trip.Id, 2100);
+
+            Assert.True(result.IsSuccess);
+            Assert.Equal(TripStatus.Completed, _trips.Get(trip.Id).Status);
+            Assert.Equal(VehicleStatus.Available, _vehicles.Get(_vehicle.Id).Status);
+        }
+
+        [Fact]
         public void Complete_FailsWhenOdometerLowerThanStart()
         {
             var trip = PlanTrip();
