@@ -1,4 +1,7 @@
 using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using FleetTrack.Core.Domain;
 using FleetTrack.Core.Events;
 using FleetTrack.Core.Services;
@@ -129,6 +132,73 @@ namespace FleetTrack.Tests.Services
             _service.Start(first.Id);
 
             Assert.True(_service.Start(second.Id).IsFailure);
+        }
+
+        [Fact]
+        public void Start_FailsWhenDriverIsAlreadyDrivingAnotherVehicle()
+        {
+            var second = TestData.Vehicle("SECOND-1");
+            _vehicles.Add(second);
+            var first = PlanTrip();
+            var other = _service.Plan(second.Id, _driver.Id, TestData.Berlin, TestData.Munich, TestData.Now).Value;
+            _service.Start(first.Id);
+
+            var result = _service.Start(other.Id);
+
+            Assert.True(result.IsFailure);
+            Assert.Contains("already on another trip", result.Error);
+            Assert.Equal(VehicleStatus.Available, second.Status);
+        }
+
+        [Fact]
+        public void Start_SucceedsForDriverAfterPreviousTripCompleted()
+        {
+            var second = TestData.Vehicle("SECOND-1");
+            _vehicles.Add(second);
+            var first = PlanTrip();
+            var other = _service.Plan(second.Id, _driver.Id, TestData.Berlin, TestData.Munich, TestData.Now).Value;
+            _service.Start(first.Id);
+            _service.Complete(first.Id, 2100);
+
+            Assert.True(_service.Start(other.Id).IsSuccess);
+        }
+
+        [Fact]
+        public void Start_ConcurrentRequests_OnlyOneTripPerVehicleAndDriver()
+        {
+            var vehicles = Enumerable.Range(0, 8).Select(i => TestData.Vehicle("PAR-" + i)).ToList();
+            vehicles.ForEach(_vehicles.Add);
+            var plans = vehicles
+                .Select(v => _service.Plan(v.Id, _driver.Id, TestData.Berlin, TestData.Munich, TestData.Now).Value)
+                .Concat(Enumerable.Range(0, 8).Select(_ => PlanTrip()))
+                .ToList();
+
+            var successes = 0;
+            Parallel.ForEach(plans, p =>
+            {
+                if (_service.Start(p.Id).IsSuccess)
+                {
+                    Interlocked.Increment(ref successes);
+                }
+            });
+
+            Assert.Equal(1, successes);
+            Assert.Single(_trips.FindByStatus(TripStatus.InProgress));
+        }
+
+        [Fact]
+        public void Complete_RejectsReadingBelowVehicleOdometer_WithoutChangingState()
+        {
+            var trip = PlanTrip();
+            _service.Start(trip.Id);
+            _vehicle.UpdateOdometer(2300);   // e.g. a fuel stop recorded mid-trip
+
+            var result = _service.Complete(trip.Id, 2250);
+
+            Assert.True(result.IsFailure);
+            Assert.Equal(TripStatus.InProgress, _trips.Get(trip.Id).Status);
+            Assert.Equal(VehicleStatus.InUse, _vehicle.Status);
+            Assert.True(_service.Complete(trip.Id, 2400).IsSuccess);
         }
 
         [Fact]
