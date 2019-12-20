@@ -1,4 +1,6 @@
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using FleetTrack.Core.Domain;
 using FleetTrack.Core.Services;
 using FleetTrack.Infrastructure.Persistence;
@@ -33,6 +35,23 @@ namespace FleetTrack.Tests.Services
             var duplicate = _service.Register("ab-1", "Ford", "Focus", 2017, FuelType.Gasoline, 0);
 
             Assert.True(duplicate.IsFailure);
+            Assert.Single(_repo.GetAll());
+        }
+
+        [Fact]
+        public void Register_ConcurrentDuplicates_OnlyOneSucceeds()
+        {
+            var successes = 0;
+
+            Parallel.For(0, 64, i =>
+            {
+                if (_service.Register(i % 2 == 0 ? "DUP-1" : "dup-1", "Ford", "Transit", 2018, FuelType.Diesel, 0).IsSuccess)
+                {
+                    Interlocked.Increment(ref successes);
+                }
+            });
+
+            Assert.Equal(1, successes);
             Assert.Single(_repo.GetAll());
         }
 

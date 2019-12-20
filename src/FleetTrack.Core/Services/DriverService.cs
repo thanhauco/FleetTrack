@@ -8,6 +8,8 @@ namespace FleetTrack.Core.Services
 {
     public class DriverService
     {
+        // Serialises the uniqueness check with the insert (see VehicleService).
+        private readonly object _gate = new object();
         private readonly IDriverRepository _drivers;
         private readonly IClock _clock;
 
@@ -19,20 +21,23 @@ namespace FleetTrack.Core.Services
 
         public Result<Driver> Hire(string fullName, string licenseNumber, LicenseClass licenseClass, DateTime licenseExpiryUtc)
         {
-            if (_drivers.FindByLicense(licenseNumber) != null)
-            {
-                return Result.Fail<Driver>($"A driver with licence {licenseNumber} already exists.");
-            }
-
             var now = _clock.UtcNow;
             if (licenseExpiryUtc.Date < now.Date)
             {
                 return Result.Fail<Driver>("The licence has already expired.");
             }
 
-            var driver = new Driver(fullName, licenseNumber, licenseClass, licenseExpiryUtc, now);
-            _drivers.Add(driver);
-            return Result.Ok(driver);
+            lock (_gate)
+            {
+                if (_drivers.FindByLicense(licenseNumber) != null)
+                {
+                    return Result.Fail<Driver>($"A driver with licence {licenseNumber} already exists.");
+                }
+
+                var driver = new Driver(fullName, licenseNumber, licenseClass, licenseExpiryUtc, now);
+                _drivers.Add(driver);
+                return Result.Ok(driver);
+            }
         }
 
         public Driver Get(Guid id)

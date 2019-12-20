@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using FleetTrack.Core.Domain;
 using FleetTrack.Core.Services;
 using FleetTrack.Infrastructure.Persistence;
@@ -42,6 +44,23 @@ namespace FleetTrack.Tests.Services
             _service.Hire("Ava", "D-1", LicenseClass.B, TestData.Now.AddYears(1));
 
             Assert.True(_service.Hire("Liam", "d-1", LicenseClass.C, TestData.Now.AddYears(1)).IsFailure);
+        }
+
+        [Fact]
+        public void Hire_ConcurrentDuplicates_OnlyOneSucceeds()
+        {
+            var successes = 0;
+
+            Parallel.For(0, 64, i =>
+            {
+                if (_service.Hire("Driver " + i, "D-77", LicenseClass.B, TestData.Now.AddYears(1)).IsSuccess)
+                {
+                    Interlocked.Increment(ref successes);
+                }
+            });
+
+            Assert.Equal(1, successes);
+            Assert.Single(_repo.GetAll());
         }
 
         [Fact]

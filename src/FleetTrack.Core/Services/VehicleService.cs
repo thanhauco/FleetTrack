@@ -8,6 +8,9 @@ namespace FleetTrack.Core.Services
 {
     public class VehicleService
     {
+        // Serialises the uniqueness check with the insert; otherwise two concurrent
+        // registrations of the same plate both pass FindByPlate.
+        private readonly object _gate = new object();
         private readonly IVehicleRepository _vehicles;
 
         public VehicleService(IVehicleRepository vehicles)
@@ -17,14 +20,17 @@ namespace FleetTrack.Core.Services
 
         public Result<Vehicle> Register(string licensePlate, string make, string model, int year, FuelType fuelType, double odometerKm)
         {
-            if (_vehicles.FindByPlate(licensePlate) != null)
+            lock (_gate)
             {
-                return Result.Fail<Vehicle>($"A vehicle with plate {licensePlate} already exists.");
-            }
+                if (_vehicles.FindByPlate(licensePlate) != null)
+                {
+                    return Result.Fail<Vehicle>($"A vehicle with plate {licensePlate} already exists.");
+                }
 
-            var vehicle = new Vehicle(licensePlate, make, model, year, fuelType, odometerKm);
-            _vehicles.Add(vehicle);
-            return Result.Ok(vehicle);
+                var vehicle = new Vehicle(licensePlate, make, model, year, fuelType, odometerKm);
+                _vehicles.Add(vehicle);
+                return Result.Ok(vehicle);
+            }
         }
 
         public Vehicle Get(Guid id)
