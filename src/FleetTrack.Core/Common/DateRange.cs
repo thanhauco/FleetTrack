@@ -26,6 +26,21 @@ namespace FleetTrack.Core.Common
             return value >= FromUtc && value <= ToUtc;
         }
 
+        public bool Intersects(DateTime fromUtc, DateTime toUtc)
+        {
+            return fromUtc <= ToUtc && toUtc >= FromUtc;
+        }
+
+        /// <summary>
+        /// Length of the part of [fromUtc, toUtc] that falls inside this range.
+        /// </summary>
+        public TimeSpan Overlap(DateTime fromUtc, DateTime toUtc)
+        {
+            var start = fromUtc > FromUtc ? fromUtc : FromUtc;
+            var end = toUtc < ToUtc ? toUtc : ToUtc;
+            return end > start ? end - start : TimeSpan.Zero;
+        }
+
         public override string ToString()
         {
             return $"{FromUtc:yyyy-MM-dd} .. {ToUtc:yyyy-MM-dd}";

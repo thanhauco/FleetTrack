@@ -31,5 +31,26 @@ namespace FleetTrack.Tests.Common
 
             Assert.Equal(48.0, range.TotalHours);
         }
+
+        [Fact]
+        public void Overlap_IsClippedToRange()
+        {
+            var range = new DateRange(Start, Start.AddHours(10));
+
+            Assert.Equal(TimeSpan.FromHours(2), range.Overlap(Start.AddHours(8), Start.AddHours(30)));
+            Assert.Equal(TimeSpan.FromHours(3), range.Overlap(Start.AddHours(-5), Start.AddHours(3)));
+            Assert.Equal(TimeSpan.FromHours(10), range.Overlap(Start.AddHours(-5), Start.AddHours(50)));
+            Assert.Equal(TimeSpan.Zero, range.Overlap(Start.AddHours(11), Start.AddHours(12)));
+        }
+
+        [Fact]
+        public void Intersects_IncludesTouchingIntervals()
+        {
+            var range = new DateRange(Start, Start.AddHours(10));
+
+            Assert.True(range.Intersects(Start.AddHours(-2), Start));
+            Assert.True(range.Intersects(Start.AddHours(10), Start.AddHours(12)));
+            Assert.False(range.Intersects(Start.AddHours(11), Start.AddHours(12)));
+        }
     }
 }

@@ -22,6 +22,16 @@ namespace FleetTrack.Core.Services
         public double UtilizationPercent { get; set; }
     }
 
+    /// <summary>
+    /// Driving time of completed trips as a share of the reporting period.
+    /// </summary>
+    /// <remarks>
+    /// Only the part of a trip that falls inside the range is counted, so a trip
+    /// crossing either boundary contributes partially and utilization can never
+    /// exceed 100 % per vehicle. Distance is pro-rated by the same time fraction,
+    /// which assumes a roughly constant average speed over the trip; odometer
+    /// readings are only taken at the start and end, so nothing finer is known.
+    /// </remarks>
     public class UtilizationReportService
     {
         private readonly ITripRepository _trips;
@@ -36,27 +46,44 @@ namespace FleetTrack.Core.Services
         public IReadOnlyList<VehicleUtilization> Build(DateRange range)
         {
             var completed = _trips.FindByStatus(TripStatus.Completed)
-                .Where(t => t.StartedUtc.HasValue && range.Contains(t.StartedUtc.Value))
+                .Where(t => t.StartedUtc.HasValue && t.CompletedUtc.HasValue
+                            && range.Intersects(t.StartedUtc.Value, t.CompletedUtc.Value))
                 .ToLookup(t => t.VehicleId);
 
             var rows = new List<VehicleUtilization>();
             foreach (var vehicle in _vehicles.GetAll())
             {
                 var trips = completed[vehicle.Id].ToList();
-                var hours = trips.Sum(t => t.Duration.HasValue ? t.Duration.Value.TotalHours : 0);
+                var hours = 0.0;
+                var distance = 0.0;
+
+                foreach (var trip in trips)
+                {
+                    var overlap = range.Overlap(trip.StartedUtc.Value, trip.CompletedUtc.Value);
+                    hours += overlap.TotalHours;
+                    distance += (trip.DistanceKm ?? 0) * FractionInRange(trip, overlap);
+                }
 
                 rows.Add(new VehicleUtilization
                 {
                     VehicleId = vehicle.Id,
                     LicensePlate = vehicle.LicensePlate,
                     TripCount = trips.Count,
-                    DistanceKm = trips.Sum(t => t.DistanceKm ?? 0),
-                    DrivingHours = hours,
+                    DistanceKm = Math.Round(distance, 1),
+                    DrivingHours = Math.Round(hours, 2),
                     UtilizationPercent = range.TotalHours > 0 ? Math.Round(hours / range.TotalHours * 100.0, 2) : 0
                 });
             }
 
             return rows.OrderByDescending(r => r.UtilizationPercent).ThenBy(r => r.LicensePlate).ToList();
+        }
+
+        private static double FractionInRange(Trip trip, TimeSpan overlap)
+        {
+            var duration = trip.Duration.Value;
+
+            // A zero-length trip has no time to pro-rate; it is either inside or not.
+            return duration > TimeSpan.Zero ? overlap.TotalHours / duration.TotalHours : 1.0;
         }
     }
 }
