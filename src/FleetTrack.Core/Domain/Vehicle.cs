@@ -10,8 +10,21 @@ namespace FleetTrack.Core.Domain
         // "Available" and both assign the vehicle.
         private readonly object _sync = new object();
 
-        public Vehicle(string licensePlate, string make, string model, int year, FuelType fuelType, double odometerKm)
+        public Vehicle(
+            string licensePlate,
+            string make,
+            string model,
+            int year,
+            FuelType fuelType,
+            double odometerKm,
+            VehicleCategory category = VehicleCategory.Car)
         {
+            if (!Enum.IsDefined(typeof(VehicleCategory), category))
+            {
+                throw new ArgumentOutOfRangeException(nameof(category), category, "Unknown vehicle category.");
+            }
+
+            Category = category;
             LicensePlate = Guard.NotEmpty(licensePlate, nameof(licensePlate)).Trim().ToUpperInvariant();
             Make = Guard.NotEmpty(make, nameof(make)).Trim();
             Model = Guard.NotEmpty(model, nameof(model)).Trim();
@@ -30,6 +43,8 @@ namespace FleetTrack.Core.Domain
         public int Year { get; private set; }
 
         public FuelType FuelType { get; private set; }
+
+        public VehicleCategory Category { get; private set; }
 
         public double OdometerKm { get; private set; }
 
