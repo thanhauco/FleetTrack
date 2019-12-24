@@ -24,13 +24,23 @@ namespace FleetTrack.Cli.Commands
 
         public int Execute(string[] args, TextWriter output)
         {
-            var vehicle = _context.Vehicles.FindByStatus(VehicleStatus.Available).FirstOrDefault();
-            var driver = _context.Drivers.GetAll().FirstOrDefault(d => d.IsLicenseValid(_context.Clock.UtcNow));
-            if (vehicle == null || driver == null)
+            // Repository enumeration order is unspecified; order explicitly so runs are
+            // reproducible, and only pair a driver with a vehicle their licence covers.
+            var now = _context.Clock.UtcNow;
+            var pair = (
+                from v in _context.Vehicles.FindByStatus(VehicleStatus.Available).OrderBy(v => v.LicensePlate)
+                from d in _context.Drivers.GetAll().OrderBy(d => d.FullName)
+                where d.IsLicenseValid(now) && LicensePolicy.CanDrive(d.LicenseClass, v.Category)
+                select new { Vehicle = v, Driver = d }).FirstOrDefault();
+
+            if (pair == null)
             {
-                output.WriteLine("No available vehicle or valid driver.");
+                output.WriteLine("No available vehicle with a matching, valid driver.");
                 return 1;
             }
+
+            var vehicle = pair.Vehicle;
+            var driver = pair.Driver;
 
             var berlin = new GeoPoint(52.5200, 13.4050);
             var munich = new GeoPoint(48.1351, 11.5820);

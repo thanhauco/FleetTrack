@@ -34,8 +34,8 @@ namespace FleetTrack.Infrastructure.Seed
         {
             var now = _clock.UtcNow;
 
-            var volvo = new Vehicle("FT-1001", "Volvo", "FH16", 2017, FuelType.Diesel, 182000);
-            var transit = new Vehicle("FT-1002", "Ford", "Transit", 2018, FuelType.Diesel, 64000);
+            var volvo = new Vehicle("FT-1001", "Volvo", "FH16", 2017, FuelType.Diesel, 182000, VehicleCategory.ArticulatedTruck);
+            var transit = new Vehicle("FT-1002", "Ford", "Transit", 2018, FuelType.Diesel, 64000, VehicleCategory.Van);
             var prius = new Vehicle("FT-1003", "Toyota", "Prius", 2019, FuelType.Hybrid, 9000);
             var leaf = new Vehicle("FT-1004", "Nissan", "Leaf", 2019, FuelType.Electric, 4200);
 

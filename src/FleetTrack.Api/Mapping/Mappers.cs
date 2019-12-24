@@ -17,6 +17,7 @@ namespace FleetTrack.Api.Mapping
                 Model = v.Model,
                 Year = v.Year,
                 FuelType = v.FuelType.ToString(),
+                Category = v.Category.ToString(),
                 Status = v.Status.ToString(),
                 OdometerKm = v.OdometerKm,
                 LastServiceUtc = v.LastServiceUtc

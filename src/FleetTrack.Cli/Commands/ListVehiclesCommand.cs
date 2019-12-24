@@ -18,11 +18,11 @@ namespace FleetTrack.Cli.Commands
 
         public int Execute(string[] args, TextWriter output)
         {
-            output.WriteLine("{0,-10} {1,-10} {2,-10} {3,-14} {4,10}", "Plate", "Make", "Model", "Status", "Odometer");
+            output.WriteLine("{0,-10} {1,-10} {2,-10} {3,-17} {4,-14} {5,10}", "Plate", "Make", "Model", "Category", "Status", "Odometer");
 
             foreach (var v in _context.Vehicles.GetAll().OrderBy(v => v.LicensePlate))
             {
-                output.WriteLine("{0,-10} {1,-10} {2,-10} {3,-14} {4,10:N0}", v.LicensePlate, v.Make, v.Model, v.Status, v.OdometerKm);
+                output.WriteLine("{0,-10} {1,-10} {2,-10} {3,-17} {4,-14} {5,10:N0}", v.LicensePlate, v.Make, v.Model, v.Category, v.Status, v.OdometerKm);
             }
 
             return 0;

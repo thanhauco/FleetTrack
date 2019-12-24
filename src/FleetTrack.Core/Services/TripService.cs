@@ -68,6 +68,13 @@ namespace FleetTrack.Core.Services
                     return Result.Fail<Trip>($"Licence of {driver.FullName} expires on {driver.LicenseExpiryUtc:yyyy-MM-dd}, before the planned start.");
                 }
 
+                if (!LicensePolicy.CanDrive(driver.LicenseClass, vehicle.Category))
+                {
+                    return Result.Fail<Trip>(
+                        $"{driver.FullName} holds a class {driver.LicenseClass} licence; " +
+                        $"{vehicle.LicensePlate} ({vehicle.Category}) requires class {LicensePolicy.MinimumFor(vehicle.Category)}.");
+                }
+
                 if (vehicle.Status == VehicleStatus.Retired || vehicle.Status == VehicleStatus.InMaintenance)
                 {
                     return Result.Fail<Trip>($"Vehicle {vehicle.LicensePlate} cannot be used ({vehicle.Status}).");

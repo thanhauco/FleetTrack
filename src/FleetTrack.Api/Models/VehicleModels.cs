@@ -18,6 +18,8 @@ namespace FleetTrack.Api.Models
 
         public string FuelType { get; set; }
 
+        public string Category { get; set; }
+
         public string Status { get; set; }
 
         public double OdometerKm { get; set; }
@@ -41,6 +43,8 @@ namespace FleetTrack.Api.Models
         public int Year { get; set; }
 
         public FuelType FuelType { get; set; }
+
+        public VehicleCategory Category { get; set; } = VehicleCategory.Car;
 
         [Range(0, double.MaxValue)]
         public double OdometerKm { get; set; }

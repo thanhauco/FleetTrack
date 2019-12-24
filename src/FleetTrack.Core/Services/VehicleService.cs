@@ -18,7 +18,14 @@ namespace FleetTrack.Core.Services
             _vehicles = Guard.NotNull(vehicles, nameof(vehicles));
         }
 
-        public Result<Vehicle> Register(string licensePlate, string make, string model, int year, FuelType fuelType, double odometerKm)
+        public Result<Vehicle> Register(
+            string licensePlate,
+            string make,
+            string model,
+            int year,
+            FuelType fuelType,
+            double odometerKm,
+            VehicleCategory category = VehicleCategory.Car)
         {
             lock (_gate)
             {
@@ -27,7 +34,7 @@ namespace FleetTrack.Core.Services
                     return Result.Fail<Vehicle>($"A vehicle with plate {licensePlate} already exists.");
                 }
 
-                var vehicle = new Vehicle(licensePlate, make, model, year, fuelType, odometerKm);
+                var vehicle = new Vehicle(licensePlate, make, model, year, fuelType, odometerKm, category);
                 _vehicles.Add(vehicle);
                 return Result.Ok(vehicle);
             }

@@ -43,7 +43,14 @@ namespace FleetTrack.Api.Controllers
         [HttpPost]
         public ActionResult<VehicleDto> Create(CreateVehicleRequest request)
         {
-            var result = _vehicles.Register(request.LicensePlate, request.Make, request.Model, request.Year, request.FuelType, request.OdometerKm);
+            var result = _vehicles.Register(
+                request.LicensePlate,
+                request.Make,
+                request.Model,
+                request.Year,
+                request.FuelType,
+                request.OdometerKm,
+                request.Category);
             if (result.IsFailure)
             {
                 return Conflict(new { error = result.Error });

@@ -104,6 +104,29 @@ namespace FleetTrack.Tests.Services
         }
 
         [Fact]
+        public void Plan_FailsWhenLicenceClassDoesNotCoverVehicle()
+        {
+            var truck = new Vehicle("TRUCK-1", "Volvo", "FH16", 2018, FuelType.Diesel, 0, VehicleCategory.ArticulatedTruck);
+            _vehicles.Add(truck);
+
+            var result = _service.Plan(truck.Id, _driver.Id, TestData.Berlin, TestData.Munich, TestData.Now);
+
+            Assert.True(result.IsFailure);
+            Assert.Contains("requires class CE", result.Error);
+        }
+
+        [Fact]
+        public void Plan_SucceedsWhenLicenceClassCoversVehicle()
+        {
+            var truck = new Vehicle("TRUCK-1", "Volvo", "FH16", 2018, FuelType.Diesel, 0, VehicleCategory.ArticulatedTruck);
+            var trucker = new Driver("Ava", "D-CE", LicenseClass.CE, TestData.Now.AddYears(1), TestData.Now.AddYears(-1));
+            _vehicles.Add(truck);
+            _drivers.Add(trucker);
+
+            Assert.True(_service.Plan(truck.Id, trucker.Id, TestData.Berlin, TestData.Munich, TestData.Now).IsSuccess);
+        }
+
+        [Fact]
         public void Plan_FailsForRetiredVehicle()
         {
             _vehicle.Retire();
