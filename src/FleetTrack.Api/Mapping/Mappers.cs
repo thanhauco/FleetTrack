@@ -67,6 +67,20 @@ namespace FleetTrack.Api.Mapping
             };
         }
 
+        public static FuelLogDto ToDto(this FuelLog l)
+        {
+            return new FuelLogDto
+            {
+                Id = l.Id,
+                VehicleId = l.VehicleId,
+                DateUtc = l.DateUtc,
+                Liters = l.Liters,
+                Cost = l.Cost.Amount,
+                Currency = l.Cost.Currency,
+                OdometerKm = l.OdometerKm
+            };
+        }
+
         public static PagedResponse<TDto> ToResponse<T, TDto>(this PagedResult<T> page, System.Func<T, TDto> map)
         {
             return new PagedResponse<TDto>

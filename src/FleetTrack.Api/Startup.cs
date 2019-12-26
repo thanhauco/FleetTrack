@@ -52,6 +52,7 @@ namespace FleetTrack.Api
             services.AddSingleton<VehicleService>();
             services.AddSingleton<DriverService>();
             services.AddSingleton<TripService>();
+            services.AddSingleton<FuelService>();
             services.AddSingleton<AlertService>();
             services.AddSingleton<CostReportService>();
             services.AddSingleton<UtilizationReportService>();
