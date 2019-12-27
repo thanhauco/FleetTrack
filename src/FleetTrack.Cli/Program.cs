@@ -15,7 +15,8 @@ namespace FleetTrack.Cli
                 new AlertsCommand(context),
                 new ReportCommand(context),
                 new SimulateCommand(context),
-                new UtilizationCommand(context)
+                new UtilizationCommand(context),
+                new ExportCommand(context)
             });
 
             return router.Run(args, Console.Out);

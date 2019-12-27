@@ -15,6 +15,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\FleetTrack.Core\FleetTrack.Core.csproj" />
     <ProjectReference Include="..\..\src\FleetTrack.Infrastructure\FleetTrack.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\FleetTrack.Cli\FleetTrack.Cli.csproj" />
   </ItemGroup>
 
 </Project>
