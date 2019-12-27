@@ -17,14 +17,19 @@ namespace FleetTrack.Api.Controllers
         }
 
         [HttpGet]
-        public IActionResult Get(DateTime from, DateTime to)
+        public IActionResult Get(DateTime? from, DateTime? to)
         {
-            if (to < from)
+            if (!from.HasValue || !to.HasValue)
+            {
+                return BadRequest(new { error = "Query parameters 'from' and 'to' are required." });
+            }
+
+            if (to.Value < from.Value)
             {
                 return BadRequest(new { error = "'to' cannot be before 'from'." });
             }
 
-            return Ok(_utilization.Build(new DateRange(from, to)));
+            return Ok(_utilization.Build(new DateRange(from.Value, to.Value)));
         }
     }
 }

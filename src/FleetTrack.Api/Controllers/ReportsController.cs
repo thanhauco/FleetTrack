@@ -20,9 +20,16 @@ namespace FleetTrack.Api.Controllers
         }
 
         [HttpGet("vehicles/{vehicleId:guid}/costs")]
-        public ActionResult<object> Costs(Guid vehicleId, DateTime from, DateTime to, string currency = "USD")
+        public ActionResult<object> Costs(Guid vehicleId, DateTime? from, DateTime? to, string currency = "USD")
         {
-            var result = _costs.Build(vehicleId, from, to, currency);
+            // Non-nullable DateTime query parameters silently bind to 0001-01-01 when
+            // omitted, which produced an empty "successful" report.
+            if (!from.HasValue || !to.HasValue)
+            {
+                return BadRequest(new { error = "Query parameters 'from' and 'to' are required." });
+            }
+
+            var result = _costs.Build(vehicleId, from.Value, to.Value, currency);
             if (result.IsFailure)
             {
                 return BadRequest(new { error = result.Error });
