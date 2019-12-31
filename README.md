@@ -34,14 +34,16 @@ dotnet run --project src/FleetTrack.Cli -- alerts
 ## Features
 
 - Vehicle registry with status tracking (available, in use, in maintenance, retired)
-- Driver licence validation and expiry alerts
+- Driver licence validation, expiry alerts and licence-class checks per vehicle category
 - Trip planning, start, completion and cancellation with odometer tracking
 - Maintenance scheduling by distance and elapsed time
-- Fuel efficiency (L/100 km) and per-vehicle cost reports
+- Fuel logging with out-of-order receipt validation, fuel efficiency (L/100 km) and per-vehicle cost reports
 - Utilization report across a date range
 - In-process domain events (e.g. long trip notifications)
+- CSV export with formula-injection protection
 
-See [docs/architecture.md](docs/architecture.md) and [docs/api.md](docs/api.md) for details.
+See [docs/architecture.md](docs/architecture.md), [docs/api.md](docs/api.md) and
+[docs/cli.md](docs/cli.md) for details.
 
 ## License
 
